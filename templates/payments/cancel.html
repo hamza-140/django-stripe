@@ -1,0 +1,86 @@
+{% extends 'base.html' %}
+
+{% block title %}Payment Cancelled - Django Stripe{% endblock %}
+
+{% block extra_css %}
+<style>
+    .cancel-container {
+        max-width: 600px;
+        text-align: center;
+    }
+
+    .cancel-icon {
+        font-size: 4rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .cancel-message {
+        background: #fef3c7;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin: 1.5rem 0;
+        border-left: 4px solid #f59e0b;
+        color: #92400e;
+    }
+
+    .action-buttons {
+        display: flex;
+        gap: 1rem;
+        margin-top: 2rem;
+    }
+
+    .btn {
+        flex: 1;
+        padding: 0.75rem 1.5rem;
+        border: none;
+        border-radius: 5px;
+        font-size: 1rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s, box-shadow 0.2s;
+        text-decoration: none;
+        display: inline-block;
+    }
+
+    .btn-primary {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+    }
+
+    .btn-secondary {
+        background: #f0f0f0;
+        color: #333;
+    }
+
+    .btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    }
+
+    @media (max-width: 600px) {
+        .action-buttons {
+            flex-direction: column;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="card cancel-container">
+    <div class="cancel-icon">❌</div>
+    
+    <h1>Payment Cancelled</h1>
+    
+    <div class="cancel-message">
+        <p>Your payment has been cancelled. You have not been charged.</p>
+        <p style="margin-top: 1rem; font-size: 0.9rem;">
+            If this was a mistake, you can try again or contact support for assistance.
+        </p>
+    </div>
+
+    <div class="action-buttons">
+        <a href="{% url 'dashboard' %}" class="btn btn-primary">← Back to Dashboard</a>
+        <a href="{% url 'create-checkout-session' %}" class="btn btn-secondary">Try Again</a>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,290 @@
+{% extends 'base.html' %}
+
+{% block title %}Dashboard - Django Stripe{% endblock %}
+
+{% block extra_css %}
+<style>
+    .dashboard-container {
+        width: 100%;
+        max-width: 900px;
+    }
+
+    .dashboard-header {
+        color: white;
+        margin-bottom: 2rem;
+        text-align: center;
+    }
+
+    .dashboard-header h1 {
+        font-size: 2.5rem;
+        margin-bottom: 0.5rem;
+    }
+
+    .stats-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(10px);
+        padding: 1.5rem;
+        border-radius: 10px;
+        border: 1px solid rgba(255, 255, 255, 0.2);
+        color: white;
+    }
+
+    .stat-label {
+        font-size: 0.9rem;
+        opacity: 0.9;
+        margin-bottom: 0.5rem;
+    }
+
+    .stat-value {
+        font-size: 2rem;
+        font-weight: bold;
+    }
+
+    .card {
+        max-width: none;
+    }
+
+    .payment-btn {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 0.75rem 2rem;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        font-size: 1rem;
+        font-weight: 600;
+        margin-bottom: 2rem;
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .payment-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+    }
+
+    .payment-btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+
+    .payments-table {
+        width: 100%;
+        border-collapse: collapse;
+        margin-top: 1rem;
+    }
+
+    .payments-table thead {
+        background: #f5f5f5;
+    }
+
+    .payments-table th {
+        padding: 1rem;
+        text-align: left;
+        font-weight: 600;
+        color: #333;
+        border-bottom: 2px solid #ddd;
+    }
+
+    .payments-table td {
+        padding: 1rem;
+        border-bottom: 1px solid #eee;
+        color: #555;
+    }
+
+    .payments-table tr:hover {
+        background: #f9f9f9;
+    }
+
+    .status-badge {
+        display: inline-block;
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 600;
+    }
+
+    .status-pending {
+        background: #fff3cd;
+        color: #856404;
+    }
+
+    .status-paid {
+        background: #d4edda;
+        color: #155724;
+    }
+
+    .status-failed {
+        background: #f8d7da;
+        color: #721c24;
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem 1rem;
+        color: #999;
+    }
+
+    .empty-state-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .loading {
+        text-align: center;
+        padding: 2rem;
+    }
+
+    .spinner {
+        border: 4px solid #f3f3f3;
+        border-top: 4px solid #667eea;
+        border-radius: 50%;
+        width: 30px;
+        height: 30px;
+        animation: spin 1s linear infinite;
+        margin: 0 auto;
+    }
+
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+
+    @media (max-width: 600px) {
+        .stats-grid {
+            grid-template-columns: 1fr;
+        }
+
+        .payments-table {
+            font-size: 0.9rem;
+        }
+
+        .payments-table th,
+        .payments-table td {
+            padding: 0.75rem 0.5rem;
+        }
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dashboard-container">
+    <div class="dashboard-header">
+        <h1>💼 Dashboard</h1>
+        <p>Welcome back, {{ user.first_name|default:user.username }}!</p>
+    </div>
+
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-label">Total Payments</div>
+            <div class="stat-value">{{ payments|length }}</div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-label">Total Spent</div>
+            <div class="stat-value">${{ total_spent|floatformat:2 }}</div>
+        </div>
+    </div>
+
+    <button class="payment-btn" onclick="initiatePayment()">💳 Make a Payment</button>
+
+    <div class="card">
+        <h2>Recent Payments</h2>
+
+        {% if payments %}
+            <table class="payments-table">
+                <thead>
+                    <tr>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th>Date</th>
+                        <th>Session ID</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for payment in payments %}
+                        <tr>
+                            <td>${{ payment.get_amount_dollars|floatformat:2 }}</td>
+                            <td>
+                                <span class="status-badge status-{{ payment.status|lower }}">
+                                    {{ payment.get_status_display }}
+                                </span>
+                            </td>
+                            <td>{{ payment.created_at|date:"M d, Y H:i" }}</td>
+                            <td style="font-size: 0.85rem; color: #999; word-break: break-all;">
+                                {{ payment.stripe_session_id|truncatechars:20 }}
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        {% else %}
+            <div class="empty-state">
+                <div class="empty-state-icon">📭</div>
+                <p>No payments yet. Start by making your first payment!</p>
+            </div>
+        {% endif %}
+    </div>
+</div>
+
+<script>
+    const STRIPE_PUBLISHABLE_KEY = "{{ stripe_publishable_key }}";
+
+    async function initiatePayment() {
+        const btn = event.target;
+        btn.disabled = true;
+        btn.innerText = 'Processing...';
+
+        try {
+            const response = await fetch("{% url 'create-checkout-session' %}", {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': getCookie('csrftoken'),
+                    'Content-Type': 'application/json',
+                }
+            });
+
+            if (!response.ok) {
+                const error = await response.json();
+                alert('Error: ' + (error.error || 'Failed to create checkout session'));
+                return;
+            }
+
+            const data = await response.json();
+            
+            // Redirect to Stripe checkout
+            if (data.checkout_url) {
+                window.location.href = data.checkout_url;
+            } else {
+                alert('Error: No checkout URL received');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error initiating payment: ' + error.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerText = '💳 Make a Payment';
+        }
+    }
+
+    function getCookie(name) {
+        let cookieValue = null;
+        if (document.cookie && document.cookie !== '') {
+            const cookies = document.cookie.split(';');
+            for (let i = 0; i < cookies.length; i++) {
+                const cookie = cookies[i].trim();
+                if (cookie.substring(0, name.length + 1) === (name + '=')) {
+                    cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                    break;
+                }
+            }
+        }
+        return cookieValue;
+    }
+</script>
+{% endblock %}
